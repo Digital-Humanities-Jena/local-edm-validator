@@ -1,0 +1,23 @@
+# syntax=docker/dockerfile:1.7
+FROM maven:3.9.11-eclipse-temurin-21 AS build
+WORKDIR /workspace
+
+COPY pom.xml .
+COPY metis-sandbox-common/pom.xml metis-sandbox-common/pom.xml
+COPY metis-sandbox-service/pom.xml metis-sandbox-service/pom.xml
+COPY metis-sandbox-rest/pom.xml metis-sandbox-rest/pom.xml
+COPY .git .git
+COPY metis-sandbox-common metis-sandbox-common
+COPY metis-sandbox-service metis-sandbox-service
+COPY metis-sandbox-rest metis-sandbox-rest
+
+RUN --mount=type=cache,target=/root/.m2 mvn -B -DskipTests -DskipITs package
+
+FROM eclipse-temurin:21-jre
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends imagemagick ffmpeg ghostscript curl \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=build /workspace/metis-sandbox-rest/target/*.jar /app.jar
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "/app.jar"]

@@ -1,0 +1,171 @@
+info:
+  app:
+    title: Local EDM Validator
+    description: Local EDM validation and METIS Sandbox operations for WebHDP
+    version: 1.0.0-local
+    repository: https://github.com/Digital-Humanities-Jena/local-edm-validator
+    contact:
+      name: Digital Humanities Jena
+      email:
+      url: https://github.com/Digital-Humanities-Jena/local-edm-validator
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: ["health", "info", "loggers", "metrics", "scheduledtasks", "beans"]
+    access:
+      default: read_only
+  endpoint:
+    health:
+      access: read_only
+      show-details: always
+    info:
+      access: read_only
+  info:
+    env:
+      enabled: true
+
+truststore:
+  path:
+  password:
+
+elastic:
+  apm:
+    enabled: false
+
+spring:
+  application:
+    name: Metis Sandbox Local
+  servlet:
+    multipart:
+      max-file-size: 64MB
+      max-request-size: 64MB
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://localhost:7080/realms/europeana/protocol/openid-connect/certs
+  datasource:
+    jdbcUrl: jdbc:postgresql://metis-sandbox-postgres:5432/metis-sandbox
+    driverClassName: org.postgresql.Driver
+    username: local
+    password: local
+  batch:
+    job:
+      enabled: false
+    jdbc:
+      initialize-schema: always
+  sql:
+    init:
+      mode: always
+  jpa:
+    open-in-view: false
+    generate-ddl: true
+    hibernate:
+      ddl-auto: update
+
+sandbox:
+  batch-job-executor:
+    job-state-poll-interval-millis: 100
+  workflow:
+    HARVEST_OAI:
+      chunkSize: 5
+      parallelizeSize: 1
+    HARVEST_FILE:
+      chunkSize: 5
+      parallelizeSize: 1
+    VALIDATE:
+      chunkSize: 5
+      parallelizeSize: 1
+    TRANSFORM:
+      chunkSize: 5
+      parallelizeSize: 1
+    NORMALIZE:
+      chunkSize: 5
+      parallelizeSize: 1
+    ENRICH:
+      chunkSize: 5
+      parallelizeSize: 1
+    MEDIA:
+      chunkSize: 5
+      parallelizeSize: 1
+    INDEX:
+      chunkSize: 5
+      parallelizeSize: 1
+    DEBIAS:
+      chunkSize: 5
+      parallelizeSize: 1
+  cors:
+    mapping: "*"
+  rate-limit:
+    enabled: false
+    bandwidth:
+      capacity: 1000000
+      time: 3600
+  debias:
+    url: http://localhost:8081/metis-debias
+    connectTimeout: 300
+    requestTimeout: 300
+  dataset:
+    clean:
+      frequency: 0 0 0 * * ?
+      days-to-preserve: 7
+    max-size: 1000
+  metrics:
+    frequency: "*/30 * * * * *"
+  validation:
+    direct:
+      enabled: true
+    edm-sorter-url: http://ftp.eanadev.org/schema_zips/edm_sorter.xsl
+    executor:
+      pool-size: 10
+    predefinedSchemas:
+      EDM-INTERNAL:
+        url: http://ftp.eanadev.org/schema_zips/europeana_schemas-20241127.zip
+        rootLocation: EDM-INTERNAL.xsd
+        schematronLocation: schematron/schematron-internal.xsl
+      EDM-EXTERNAL:
+        url: http://ftp.eanadev.org/schema_zips/europeana_schemas-20241127.zip
+        rootLocation: EDM.xsd
+        schematronLocation: schematron/schematron.xsl
+  transformation:
+    xslt-url: https://metis-core-rest.test.eanadev.org/datasets/xslt/default
+    xslt-update-frequency: 0 0 * * * *
+  enrichment:
+    enabled: false
+    dereference-url: http://localhost:8082
+    enrichment-properties:
+      entity-management-url: http://localhost:8082/entity
+      entity-api-url: http://localhost:8082/entity
+      entity-api-token-endpoint: http://localhost:8082/token
+      entity-api-grant-params: client_id=local-edm-validator&client_secret=&grant_type=client_credentials
+  publish:
+    mongo:
+      application-name: metis-sandbox-local
+      db: metis-sandbox
+      hosts: metis-sandbox-mongo
+      ports: 27017
+      authentication-db: admin
+      username: local
+      password: local
+      ssl-enable: false
+      max-connection-pool-size: 10
+    solr:
+      hosts: http://metis-sandbox-solr:8983/solr/metis_sandbox_publish_local
+      zookeeper:
+        hosts: metis-sandbox-solr
+        ports: 9983
+        default:
+          collection: metis_sandbox_publish_local
+        timeout: 10
+  s3:
+    access-key: local
+    secret-key: localpassword
+    endpoint: http://metis-sandbox-minio:9000
+    signing-region: eu-west-2
+    thumbnails-bucket: metis-sandbox-bucket
+  portal:
+    publish:
+      dataset-base-url: http://localhost:18080/
+      record-base-url: http://localhost:18080/item

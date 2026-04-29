@@ -1,0 +1,37 @@
+name: CI
+
+on: push
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install media software
+        uses: europeana/metis-actions/actions/media-software-install-steps@main
+      - name: Build code and Sonar Analyze
+        uses: europeana/metis-actions/actions/build-analyze@main
+        with:
+          sonar_organization: europeana
+          sonar_project_key: europeana_metis-sandbox
+          sonar_token: ${{ secrets.METIS_SONAR_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload all jars to target-jars
+        uses: europeana/metis-actions/actions/upload-target-jars@main
+
+  deploy-artifacts:
+    needs: ci
+    uses: europeana/metis-actions/.github/workflows/deploy-artifacts.yml@main
+    secrets:
+      ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+      ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+
+  docker-build_metis-sandbox:
+    needs: ci
+    uses: europeana/metis-actions/.github/workflows/docker-build-push.yml@main
+    with:
+      docker-organization: europeana
+      docker-image-name: metis-sandbox
+      project-path: metis-sandbox-rest/
+    secrets:
+      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+      DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
