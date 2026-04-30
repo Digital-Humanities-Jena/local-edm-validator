@@ -145,6 +145,13 @@ GET /dataset/{id}/progress
 GET /dataset/{id}/info
 ```
 
+Refresh the default transformation XSLT from the configured source URL:
+
+```text
+POST /update/default-xslt
+POST /update/default-xslt?url=<xslt-url>
+```
+
 Dataset harvest endpoints are also available:
 
 ```text

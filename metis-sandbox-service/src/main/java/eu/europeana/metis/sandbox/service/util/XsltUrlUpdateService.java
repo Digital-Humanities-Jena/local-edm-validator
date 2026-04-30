@@ -2,6 +2,8 @@ package eu.europeana.metis.sandbox.service.util;
 
 import eu.europeana.metis.sandbox.entity.TransformXsltEntity;
 import eu.europeana.metis.sandbox.entity.XsltType;
+import eu.europeana.metis.sandbox.dto.update.XsltUpdateResult;
+import eu.europeana.metis.sandbox.dto.update.XsltUpdateResult.Status;
 import eu.europeana.metis.sandbox.repository.TransformXsltRepository;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -48,26 +50,40 @@ public class XsltUrlUpdateService {
    * Updates the default XSLT transformation by fetching the content from the provided URL.
    *
    * @param defaultXsltUrl url from which the XSLT transformation will be fetched
+   * @return the update result
    */
-  public void updateXslt(String defaultXsltUrl) {
+  public XsltUpdateResult updateXslt(String defaultXsltUrl) {
+    if (defaultXsltUrl == null || defaultXsltUrl.isBlank()) {
+      throw new IllegalArgumentException("Default XSLT URL must not be blank.");
+    }
 
     final HttpRequest request = HttpRequest.newBuilder().GET().uri(URI.create(defaultXsltUrl)).build();
     try {
       HttpResponse<String> response = httpClient.sendAsync(request, BodyHandlers.ofString()).get();
       if (response.statusCode() == HttpStatus.OK.value()) {
         // TODO: should the response body (xslt) be validated?
-        saveDefaultXslt(response.body());
+        return saveDefaultXslt(defaultXsltUrl, response.body(), response.statusCode());
       } else {
         log.warn("Failed to update default transform XSLT from URL: [{}]; response code: {}", defaultXsltUrl,
             response.statusCode());
+        return new XsltUpdateResult(defaultXsltUrl, Status.FAILED, response.statusCode(),
+            "Failed to fetch default XSLT from upstream URL.");
       }
-    } catch (RuntimeException | InterruptedException | ExecutionException e) {
+    } catch (InterruptedException e) {
       log.error("Failed to update default transform XSLT from URL: {} \n{}", defaultXsltUrl, e);
       Thread.currentThread().interrupt();
+      return new XsltUpdateResult(defaultXsltUrl, Status.FAILED, null, e.getMessage());
+    } catch (RuntimeException | ExecutionException e) {
+      log.error("Failed to update default transform XSLT from URL: {} \n{}", defaultXsltUrl, e);
+      return new XsltUpdateResult(defaultXsltUrl, Status.FAILED, null, e.getMessage());
     }
   }
 
-  private void saveDefaultXslt(String newTransformXslt) {
+  private XsltUpdateResult saveDefaultXslt(String defaultXsltUrl, String newTransformXslt, int httpStatus) {
+    if (newTransformXslt == null || newTransformXslt.isBlank()) {
+      return new XsltUpdateResult(defaultXsltUrl, Status.FAILED, httpStatus, "Fetched XSLT content was blank.");
+    }
+
     final Lock lock = lockRegistry.obtain("saveDefaultXslt");
     try {
       lock.lock();
@@ -78,13 +94,17 @@ public class XsltUrlUpdateService {
         if (!(newTransformXslt.equals(entity.get().getTransformXslt()))) {
           entity.get().setTransformXslt(newTransformXslt);
           transformXsltRepository.save(entity.get());
+          return new XsltUpdateResult(defaultXsltUrl, Status.UPDATED, httpStatus, "Default XSLT updated.");
         }
+        return new XsltUpdateResult(defaultXsltUrl, Status.UNCHANGED, httpStatus, "Default XSLT already up to date.");
       } else {
         TransformXsltEntity transformXsltEntity = new TransformXsltEntity(XsltType.DEFAULT, newTransformXslt);
         transformXsltRepository.save(transformXsltEntity);
+        return new XsltUpdateResult(defaultXsltUrl, Status.UPDATED, httpStatus, "Default XSLT created.");
       }
     } catch (RuntimeException e) {
       log.error("Failed to persist default transform XSLT from URL: {} \n{}", newTransformXslt, e);
+      return new XsltUpdateResult(defaultXsltUrl, Status.FAILED, httpStatus, e.getMessage());
     } finally {
       log.info("Save default xslt lock, Unlocked");
       lock.unlock();
