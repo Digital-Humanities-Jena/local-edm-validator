@@ -18,6 +18,7 @@ import eu.europeana.metis.sandbox.dto.validation.RecordValidationMessage.Type;
 import eu.europeana.metis.sandbox.dto.validation.ValidationResult;
 import eu.europeana.metis.sandbox.dto.validation.ValidationResult.Status;
 import eu.europeana.metis.sandbox.dto.validation.ValidationWorkflowReport;
+import eu.europeana.metis.sandbox.dto.validation.ValidationWorkflowReport.ValidatorIdentity;
 import eu.europeana.metis.sandbox.entity.problempatterns.ExecutionPoint;
 import eu.europeana.metis.sandbox.service.dataset.DatasetExecutionService;
 import eu.europeana.metis.sandbox.service.dataset.DatasetReportService;
@@ -40,7 +41,11 @@ import java.util.Optional;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.info.BuildProperties;
+import org.springframework.boot.info.GitProperties;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -63,6 +68,7 @@ public class ValidationController {
   private final ExecutionPointService executionPointService;
   private final DirectRecordValidationService directRecordValidationService;
   private final boolean directValidationEnabled;
+  private final ValidatorIdentity validatorIdentity;
 
   /**
    * Constructor.
@@ -75,13 +81,21 @@ public class ValidationController {
   public ValidationController(DatasetExecutionService datasetExecutionService,
       DatasetReportService datasetReportService, PatternAnalysisService<FullBatchJobType, ExecutionPoint> patternAnalysisService,
       ExecutionPointService executionPointService, DirectRecordValidationService directRecordValidationService,
-      @Value("${sandbox.validation.direct.enabled:true}") boolean directValidationEnabled) {
+      @Value("${sandbox.validation.direct.enabled:true}") boolean directValidationEnabled,
+      Environment environment, ObjectProvider<BuildProperties> build, ObjectProvider<GitProperties> git) {
     this.datasetExecutionService = datasetExecutionService;
     this.datasetReportService = datasetReportService;
     this.patternAnalysisService = patternAnalysisService;
     this.executionPointService = executionPointService;
     this.directRecordValidationService = directRecordValidationService;
     this.directValidationEnabled = directValidationEnabled;
+    BuildProperties buildProperties = build.getIfAvailable();
+    GitProperties gitProperties = git.getIfAvailable();
+    String commit = gitProperties == null ? null : gitProperties.getCommitId();
+    this.validatorIdentity = new ValidatorIdentity(environment.getProperty("info.app.edm-schema-version"),
+        buildProperties == null ? null : buildProperties.get("metis-schema-version"),
+        StringUtils.defaultIfBlank(commit, environment.getProperty("info.app.source.ref")),
+        buildProperties == null ? null : buildProperties.getVersion());
   }
 
   /**
@@ -141,7 +155,8 @@ public class ValidationController {
             createdDatasetId, FullBatchJobType.VALIDATE_INTERNAL, executionPoint.getExecutionTimestamp()));
 
     return new ValidationWorkflowReport(validationResults,
-        datasetPatternAnalysis.map(DatasetProblemPatternAnalysis::problemPatternList).orElse(List.of()));
+        datasetPatternAnalysis.map(DatasetProblemPatternAnalysis::problemPatternList).orElse(List.of()))
+        .withValidatorIdentity(validatorIdentity);
   }
 
   @Operation(summary = "Validate multiple records in rdf+xml format", description = "Batch validation with per-file reports")
@@ -174,7 +189,7 @@ public class ValidationController {
   private ValidationWorkflowReport validateDirect(MultipartFile recordToValidate, Country country, Language language,
       boolean continueOnError) throws IOException {
     return directRecordValidationService.validate(new String(recordToValidate.getBytes(), StandardCharsets.UTF_8), country,
-        language, continueOnError);
+        language, continueOnError).withValidatorIdentity(validatorIdentity);
   }
 
   private boolean isFileTypeValid(MultipartFile fileToCheck) {
