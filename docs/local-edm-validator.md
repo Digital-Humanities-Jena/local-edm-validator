@@ -21,7 +21,13 @@ The local Docker stack is the recommended way to run the application because the
 
 ## Build
 
-From the repository root:
+Initialize the Git submodule from the repository root, then build the validator:
+
+```bash
+git submodule update --init --recursive
+```
+
+The submodule pins [Metis Schema v15](https://github.com/europeana/metis-schema/tree/a1201cd7e6be618bec67f8258348d8bddb93059b). Maven builds the JiBX RDF/XML bindings and packages the schema files as part of the validator build.
 
 ```bash
 mvn clean package -DskipTests -DskipITs
@@ -55,10 +61,11 @@ The REST API is available at:
 http://localhost:18080
 ```
 
-Check application health:
+Check application health and schema information:
 
 ```bash
 curl http://localhost:18080/actuator/health
+curl http://localhost:18080/actuator/info
 ```
 
 Stop the stack:
@@ -215,6 +222,10 @@ Important settings:
 | `sandbox.enrichment.enabled` | Keeps enrichment disabled in the local stack. |
 | `sandbox.batch-job-executor.job-state-poll-interval-millis` | Polling interval for remaining batch-backed workflows. |
 
+The local configuration uses Europeana’s July 20, 2026 EDM archive for external and internal XSD and Schematron validation. It uses the June 30, 2026 sorter and Metis Framework v18 default transformation. [Europeana schema archive](http://ftp.eanadev.org/schema_zips/) · [Metis Framework v18](https://github.com/europeana/metis-framework/releases/tag/v18)
+
+`GET /actuator/info` reports the configured archive date under `app.edm-schema-version` and the packaged Metis Schema dependency under `build.metis-schema-version`. When replacing the runtime configuration, set `info.app.edm-schema-version` to the date of the archive it uses.
+
 The local credentials in `application.yml` and `docker-compose.local.yml` are development placeholders.
 
 ## Local Input Files
@@ -257,7 +268,7 @@ http://localhost:18080
 
 ### A Full Build Is Slow On A New Machine
 
-The first Maven run downloads a large dependency set from Maven Central and Europeana repositories. Subsequent builds are much faster once the local Maven cache is warm.
+The first Maven run resolves dependencies from Maven Central and Europeana Artifactory. If Artifactory is unavailable, use an existing Maven cache with the dependencies already resolved. A fully populated cache supports `mvn -o clean verify -DskipITs`. The local Dockerfile reuses its Maven cache across builds.
 
 ## Publishing Notes
 

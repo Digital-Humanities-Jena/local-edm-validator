@@ -3,6 +3,7 @@ info:
     title: Local EDM Validator
     description: Local EDM validation and METIS Sandbox operations for WebHDP
     version: 1.0.0-local
+    edm-schema-version: "20260720"
     repository: https://github.com/Digital-Humanities-Jena/local-edm-validator
     contact:
       name: Digital Humanities Jena
@@ -117,20 +118,20 @@ sandbox:
   validation:
     direct:
       enabled: true
-    edm-sorter-url: http://ftp.eanadev.org/schema_zips/edm_sorter.xsl
+    edm-sorter-url: http://ftp.eanadev.org/schema_zips/edm_sorter-20260630.xsl
     executor:
       pool-size: 10
     predefinedSchemas:
       EDM-INTERNAL:
-        url: http://ftp.eanadev.org/schema_zips/europeana_schemas-20241127.zip
+        url: http://ftp.eanadev.org/schema_zips/europeana_schemas-${info.app.edm-schema-version}.zip
         rootLocation: EDM-INTERNAL.xsd
         schematronLocation: schematron/schematron-internal.xsl
       EDM-EXTERNAL:
-        url: http://ftp.eanadev.org/schema_zips/europeana_schemas-20241127.zip
+        url: http://ftp.eanadev.org/schema_zips/europeana_schemas-${info.app.edm-schema-version}.zip
         rootLocation: EDM.xsd
         schematronLocation: schematron/schematron.xsl
   transformation:
-    xslt-url: https://metis-core-rest.test.eanadev.org/datasets/xslt/default
+    xslt-url: https://raw.githubusercontent.com/europeana/metis-framework/6bc36a5c692eda22542fbc3f552e1b9e3c1b4eae/metis-transformation/metis-transformation-service/src/main/resources/default_transformation.xslt
     xslt-update-frequency: 0 0 * * * *
   enrichment:
     enabled: false

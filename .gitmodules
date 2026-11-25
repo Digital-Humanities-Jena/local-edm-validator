@@ -1,0 +1,3 @@
+[submodule "metis-sandbox-rest/webhdp-metis-schema"]
+	path = metis-sandbox-rest/webhdp-metis-schema
+	url = https://github.com/europeana/metis-schema.git

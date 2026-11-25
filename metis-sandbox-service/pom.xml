@@ -20,6 +20,10 @@
     <!-- Owned -->
     <dependency>
       <groupId>eu.europeana.metis</groupId>
+      <artifactId>metis-schema</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>eu.europeana.metis</groupId>
       <artifactId>metis-transformation-service</artifactId>
       <version>${version.metis}</version>
     </dependency>

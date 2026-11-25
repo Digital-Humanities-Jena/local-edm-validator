@@ -39,6 +39,14 @@ Using the previous average of about 20.62s, the direct validator is approximatel
 
 ## Build And Test
 
+Initialize the pinned Metis Schema source before the first Maven or Docker build:
+
+```bash
+git submodule update --init --recursive
+```
+
+A fresh clone can use `git clone --recurse-submodules https://github.com/Digital-Humanities-Jena/local-edm-validator.git` instead.
+
 Run unit and integration tests:
 
 ```bash

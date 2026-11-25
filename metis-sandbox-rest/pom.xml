@@ -212,6 +212,11 @@
           </execution>
           <execution>
             <id>build-info</id>
+            <configuration>
+              <additionalProperties>
+                <metis-schema-version>${version.metis-schema}</metis-schema-version>
+              </additionalProperties>
+            </configuration>
             <goals>
               <goal>build-info</goal>
             </goals>

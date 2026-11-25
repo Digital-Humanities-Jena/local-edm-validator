@@ -11,9 +11,9 @@ COPY metis-sandbox-common metis-sandbox-common
 COPY metis-sandbox-service metis-sandbox-service
 COPY metis-sandbox-rest metis-sandbox-rest
 
-RUN --mount=type=cache,target=/root/.m2 mvn -B -DskipTests -DskipITs package
+RUN --mount=type=cache,target=/root/.m2 mvn -B --no-snapshot-updates -DskipTests -DskipITs package
 
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:21-jre-noble
 RUN apt-get update \
     && apt-get install -y --no-install-recommends imagemagick ffmpeg ghostscript curl \
     && apt-get clean \
